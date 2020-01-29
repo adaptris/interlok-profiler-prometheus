@@ -55,6 +55,7 @@ if (JavaVersion.current().isJava8Compatible()) {
 sourceCompatibility = 1.8
 group   = 'com.adaptris'
 version = releaseVersion
+generateLombokConfig.enabled = false
 def versionDir = "$buildDir/version"
 
 repositories {
@@ -89,10 +90,10 @@ dependencies {
   implementation ("com.pivovarit:throwing-function:1.5.0")
   compile ("com.adaptris:interlok-core:$interlokCoreVersion") { changing= true}
   compile ("com.adaptris:interlok-common:$interlokCoreVersion") { changing= true}
-  
+
   compile ("com.adaptris:interlok-profiler:$interlokCoreVersion") { changing= true}
   compile ("com.adaptris:interlok-monitor-agent:$interlokCoreVersion") { changing= true}
-  
+
   compile ("io.prometheus:simpleclient:$prometheusVersion")
   compile ("io.prometheus:simpleclient_hotspot:$prometheusVersion")
   compile ("io.prometheus:simpleclient_httpserver:$prometheusVersion")
