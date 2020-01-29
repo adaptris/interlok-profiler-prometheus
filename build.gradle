@@ -9,6 +9,7 @@ plugins {
   // Manage optional dependencies in maven pom.
   id 'nebula.optional-base' version '5.0.3'
   id 'com.github.spotbugs' version '2.0.0'
+  id "io.freefair.lombok" version "4.1.6"
 }
 
 ext {
@@ -30,6 +31,7 @@ ext {
   slf4jVersion = '1.7.26'
   jacksonVersion = "2.9.9"
   log4j2Version = "2.11.2"
+  prometheusVersion = '0.8.1'
 }
 
 ext.hasGraphViz = { ->
@@ -87,7 +89,14 @@ dependencies {
   implementation ("com.pivovarit:throwing-function:1.5.0")
   compile ("com.adaptris:interlok-core:$interlokCoreVersion") { changing= true}
   compile ("com.adaptris:interlok-common:$interlokCoreVersion") { changing= true}
+  
   compile ("com.adaptris:interlok-profiler:$interlokCoreVersion") { changing= true}
+  compile ("com.adaptris:interlok-monitor-agent:$interlokCoreVersion") { changing= true}
+  
+  compile ("io.prometheus:simpleclient:$prometheusVersion")
+  compile ("io.prometheus:simpleclient_hotspot:$prometheusVersion")
+  compile ("io.prometheus:simpleclient_httpserver:$prometheusVersion")
+  compile ("io.prometheus:simpleclient_pushgateway:$prometheusVersion")
 
   annotationProcessor ("com.adaptris:interlok-core-apt:$interlokCoreVersion") {changing= true}
   umlDoclet("nl.talsmasoftware:umldoclet:1.1.4")
@@ -102,6 +111,7 @@ dependencies {
   testCompile ("org.apache.logging.log4j:log4j-1.2-api:$log4j2Version")
   testCompile ("org.apache.logging.log4j:log4j-api:$log4j2Version")
   testCompile ("org.mockito:mockito-all:1.10.19")
+  testCompile ("org.awaitility:awaitility:4.0.2")
 
   javadoc("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
 }
@@ -271,6 +281,15 @@ publishing {
   }
 }
 
+  task lgtmCompile(type: JavaCompile, dependsOn: delombok) {
+    group 'Build'
+    description 'Compile for lgtm'
+
+    source = sourceSets.main.extensions.delombokTask
+    destinationDir = sourceSets.main.java.outputDir
+    classpath = project.sourceSets.main.compileClasspath
+  }
+
 spotbugs {
   // showProgress = "true"
   effort = "max"
@@ -290,7 +309,6 @@ tasks.withType(com.github.spotbugs.SpotBugsTask) {
     html.enabled = true
   }
   includeFilter = new File("$rootDir/gradle/spotbugs-filter.xml")
-  excludeFilter = new File("$rootDir/gradle/spotbugs-exclude.xml")
 }
 javadoc.dependsOn offlinePackageList,umlJavadoc
 clean.dependsOn deleteDerbyLog
