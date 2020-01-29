@@ -24,6 +24,7 @@ jobs:
       with:
         path: ~/.gradle/wrapper
         key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle-wrapper.properties') }}
+    - name: Gradle Dependencies Cache
       uses: actions/cache@v1
       with:
         path: ~/.gradle/caches
