@@ -67,7 +67,7 @@ public class PrometheusMetricsAdapterTest {
   public void tearDown() throws Exception {
     metricsAdapter.stop();
     metricsAdapter.destroy();
-    
+    System.clearProperty("prometheusEndpointUrl");
   }
   
   @Test
