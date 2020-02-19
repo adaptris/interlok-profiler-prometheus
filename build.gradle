@@ -8,7 +8,7 @@ plugins {
   id 'jacoco'
   // Manage optional dependencies in maven pom.
   id 'nebula.optional-base' version '5.0.3'
-  id 'com.github.spotbugs' version '2.0.0'
+  id 'com.github.spotbugs' version '3.0.0'
   id "io.freefair.lombok" version "4.1.6"
 }
 
@@ -125,9 +125,8 @@ dependencies {
   offlineJavadocPackages ("com.adaptris:interlok-core:$interlokCoreVersion:javadoc@jar") { changing= true}
   offlineJavadocPackages ("com.adaptris:interlok-common:$interlokCoreVersion:javadoc@jar") { changing= true}
 
-  testCompile ('junit:junit:4.12')
+  testCompile ('junit:junit:4.13')
   testCompile ("com.adaptris:interlok-stubs:$interlokCoreVersion") { changing= true}
-  testCompile ("org.apache.derby:derby:10.14.2.0")
   testCompile ("org.apache.logging.log4j:log4j-core:$log4j2Version")
   testCompile ("org.apache.logging.log4j:log4j-1.2-api:$log4j2Version")
   testCompile ("org.apache.logging.log4j:log4j-api:$log4j2Version")
@@ -288,6 +287,8 @@ publishing {
         properties.appendNode("target", "3.10.0+")
         properties.appendNode("tags", "metrics,prometheus,profiling")
         properties.appendNode("license", "false")
+        properties.appendNode("repository", "https://github.com/adaptris/interlok-profiler-prometheus")
+        properties.appendNode("readme", "https://github.com/adaptris/interlok-profiler-prometheus/raw/develop/README.md")
       }
     }
   }
