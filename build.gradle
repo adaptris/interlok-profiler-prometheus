@@ -25,6 +25,8 @@ ext {
 
   interlokJavadocs= project.hasProperty('interlokJavadocs') ? project.getProperty('interlokJavadocs') : javadocsBaseUrl + "/interlok-core/" + interlokCoreVersion
   interlokCommonJavadocs= project.hasProperty('interlokCommonJavadocs') ? project.getProperty('interlokCommonJavadocs') : javadocsBaseUrl + "/interlok-common/" + interlokCoreVersion
+  delombokTargetDir = new File("${project.projectDir}/src/main/generated")
+
   componentName='Interlok/Prometheus'
   organizationName = "Adaptris Ltd"
   organizationUrl = "http://interlok.adaptris.net"
@@ -208,9 +210,8 @@ jacocoTestReport {
     }
 }
 
-
-task deleteDerbyLog(type: Delete) {
-  delete 'derby.log'
+task deleteGeneratedFiles(type: Delete) {
+  delete 'derby.log', delombokTargetDir
 }
 
 
@@ -301,14 +302,18 @@ publishing {
   }
 }
 
-  task lgtmCompile(type: JavaCompile, dependsOn: delombok) {
-    group 'Build'
-    description 'Compile for lgtm'
+delombok {
+  target = delombokTargetDir
+}
 
-    source = sourceSets.main.extensions.delombokTask
-    destinationDir = sourceSets.main.java.outputDir
-    classpath = project.sourceSets.main.compileClasspath
-  }
+task lgtmCompile(type: JavaCompile, dependsOn: delombok) {
+  group 'Build'
+  description 'Compile for lgtm'
+
+  source = sourceSets.main.extensions.delombokTask
+  destinationDir = sourceSets.main.java.outputDir
+  classpath = project.sourceSets.main.compileClasspath
+}
 
 spotbugs {
   // showProgress = "true"
@@ -331,7 +336,7 @@ tasks.withType(com.github.spotbugs.SpotBugsTask) {
   includeFilter = new File("$rootDir/gradle/spotbugs-filter.xml")
 }
 javadoc.dependsOn offlinePackageList,umlJavadoc
-clean.dependsOn deleteDerbyLog
+clean.dependsOn deleteGeneratedFiles
 check.dependsOn jacocoTestReport
 
 task copyRuntimeLibs(type: Copy) { into "build/lib" from configurations.runtime }
