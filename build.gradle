@@ -8,7 +8,8 @@ plugins {
   id 'jacoco'
   // Manage optional dependencies in maven pom.
   id 'nebula.optional-base' version '5.0.3'
-  id 'com.github.spotbugs' version '2.0.0'
+  id 'com.github.spotbugs' version '3.0.0'
+  id "io.freefair.lombok" version "4.1.6"
 }
 
 ext {
@@ -24,12 +25,14 @@ ext {
 
   interlokJavadocs= project.hasProperty('interlokJavadocs') ? project.getProperty('interlokJavadocs') : javadocsBaseUrl + "/interlok-core/" + interlokCoreVersion
   interlokCommonJavadocs= project.hasProperty('interlokCommonJavadocs') ? project.getProperty('interlokCommonJavadocs') : javadocsBaseUrl + "/interlok-common/" + interlokCoreVersion
+  delombokTargetDir = new File("${project.projectDir}/src/main/generated")
+
   componentName='Interlok/Prometheus'
   organizationName = "Adaptris Ltd"
   organizationUrl = "http://interlok.adaptris.net"
-  slf4jVersion = '1.7.26'
-  jacksonVersion = "2.9.9"
-  log4j2Version = "2.11.2"
+  slf4jVersion = '1.7.30'
+  log4j2Version = "2.13.0"
+  prometheusVersion = '0.8.1'
 }
 
 ext.hasGraphViz = { ->
@@ -50,9 +53,29 @@ if (JavaVersion.current().isJava8Compatible()) {
   }
 }
 
+ext.gitBranchNameOrTimestamp = { branchName ->
+  if (branchName.equals("HEAD") || branchName.equals("develop") || branchName.startsWith("release")) {
+    return new Date().format('HH:mm:ss z');
+  }
+  return branchName;
+}
+
+ext.buildInfo = { ->
+   new ByteArrayOutputStream().withStream { os ->
+      exec {
+        executable = "git"
+        args = ["rev-parse", "--abbrev-ref", "HEAD"]
+        standardOutput = os
+      }
+      def branchName = os.toString().replaceAll("\r", "").replaceAll("\n", "").trim();
+      return gitBranchNameOrTimestamp(branchName);
+    }
+}
+
 sourceCompatibility = 1.8
 group   = 'com.adaptris'
 version = releaseVersion
+generateLombokConfig.enabled = false
 def versionDir = "$buildDir/version"
 
 repositories {
@@ -87,7 +110,14 @@ dependencies {
   implementation ("com.pivovarit:throwing-function:1.5.0")
   compile ("com.adaptris:interlok-core:$interlokCoreVersion") { changing= true}
   compile ("com.adaptris:interlok-common:$interlokCoreVersion") { changing= true}
+
   compile ("com.adaptris:interlok-profiler:$interlokCoreVersion") { changing= true}
+  compile ("com.adaptris:interlok-monitor-agent:$interlokCoreVersion") { changing= true}
+
+  compile ("io.prometheus:simpleclient:$prometheusVersion")
+  compile ("io.prometheus:simpleclient_hotspot:$prometheusVersion")
+  compile ("io.prometheus:simpleclient_httpserver:$prometheusVersion")
+  compile ("io.prometheus:simpleclient_pushgateway:$prometheusVersion")
 
   annotationProcessor ("com.adaptris:interlok-core-apt:$interlokCoreVersion") {changing= true}
   umlDoclet("nl.talsmasoftware:umldoclet:1.1.4")
@@ -95,13 +125,13 @@ dependencies {
   offlineJavadocPackages ("com.adaptris:interlok-core:$interlokCoreVersion:javadoc@jar") { changing= true}
   offlineJavadocPackages ("com.adaptris:interlok-common:$interlokCoreVersion:javadoc@jar") { changing= true}
 
-  testCompile ('junit:junit:4.12')
+  testCompile ('junit:junit:4.13')
   testCompile ("com.adaptris:interlok-stubs:$interlokCoreVersion") { changing= true}
-  testCompile ("org.apache.derby:derby:10.14.2.0")
   testCompile ("org.apache.logging.log4j:log4j-core:$log4j2Version")
   testCompile ("org.apache.logging.log4j:log4j-1.2-api:$log4j2Version")
   testCompile ("org.apache.logging.log4j:log4j-api:$log4j2Version")
   testCompile ("org.mockito:mockito-all:1.10.19")
+  testCompile ("org.awaitility:awaitility:4.0.2")
 
   javadoc("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
 }
@@ -135,6 +165,7 @@ task generateVersion {
       entry(key: 'artifactId', value: project.name)
       entry(key: 'build.version', value: releaseVersion)
       entry(key: 'build.date', value: new Date().format('yyyy-MM-dd'))
+      entry(key: 'build.info', value: buildInfo())
     }
   }
 }
@@ -178,9 +209,8 @@ jacocoTestReport {
     }
 }
 
-
-task deleteDerbyLog(type: Delete) {
-  delete 'derby.log'
+task deleteGeneratedFiles(type: Delete) {
+  delete 'derby.log', delombokTargetDir
 }
 
 
@@ -257,6 +287,8 @@ publishing {
         properties.appendNode("target", "3.10.0+")
         properties.appendNode("tags", "metrics,prometheus,profiling")
         properties.appendNode("license", "false")
+        properties.appendNode("repository", "https://github.com/adaptris/interlok-profiler-prometheus")
+        properties.appendNode("readme", "https://github.com/adaptris/interlok-profiler-prometheus/raw/develop/README.md")
       }
     }
   }
@@ -269,6 +301,19 @@ publishing {
       url mavenPublishUrl
     }
   }
+}
+
+delombok {
+  target = delombokTargetDir
+}
+
+task lgtmCompile(type: JavaCompile, dependsOn: delombok) {
+  group 'Build'
+  description 'Compile for lgtm'
+
+  source = sourceSets.main.extensions.delombokTask
+  destinationDir = sourceSets.main.java.outputDir
+  classpath = project.sourceSets.main.compileClasspath
 }
 
 spotbugs {
@@ -290,10 +335,9 @@ tasks.withType(com.github.spotbugs.SpotBugsTask) {
     html.enabled = true
   }
   includeFilter = new File("$rootDir/gradle/spotbugs-filter.xml")
-  excludeFilter = new File("$rootDir/gradle/spotbugs-exclude.xml")
 }
 javadoc.dependsOn offlinePackageList,umlJavadoc
-clean.dependsOn deleteDerbyLog
+clean.dependsOn deleteGeneratedFiles
 check.dependsOn jacocoTestReport
 
 task copyRuntimeLibs(type: Copy) { into "build/lib" from configurations.runtime }
