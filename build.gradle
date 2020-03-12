@@ -318,26 +318,28 @@ task lgtmCompile(type: JavaCompile, dependsOn: delombok) {
   classpath = project.sourceSets.main.compileClasspath
 }
 
-spotbugs {
+spotbugsMain {
+  effort = "max"
+  reportLevel = "high"
   // showProgress = "true"
   effort = "max"
   // Ignore failures?
   // ignoreFailures = false
-
-  // We only care about "high priority" issues...
-  reportLevel = "high"
+  reports {
+    xml {
+      enabled = false
+    }
+    html {
+      enabled = true
+    }
+  }
+  includeFilter = new File("$rootDir/gradle/spotbugs-filter.xml")
+  // excludeFilter = new File("$rootDir/gradle/spotbugs-exclude.xml")
 }
 
 // disable spotbugsTests which checks our test code..
 spotbugsTest.enabled = false
 
-tasks.withType(com.github.spotbugs.SpotBugsTask) {
-  reports {
-    xml.enabled = false
-    html.enabled = true
-  }
-  includeFilter = new File("$rootDir/gradle/spotbugs-filter.xml")
-}
 javadoc.dependsOn offlinePackageList,umlJavadoc
 clean.dependsOn deleteGeneratedFiles
 check.dependsOn jacocoTestReport
