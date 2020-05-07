@@ -112,7 +112,7 @@ configurations.all {
 }
 
 dependencies {
-  implementation ("com.pivovarit:throwing-function:1.5.0")
+  implementation ("com.pivovarit:throwing-function:1.5.1")
   compile ("com.adaptris:interlok-core:$interlokCoreVersion") { changing= true}
   compile ("com.adaptris:interlok-common:$interlokCoreVersion") { changing= true}
 
