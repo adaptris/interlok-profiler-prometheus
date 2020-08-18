@@ -49,6 +49,18 @@ public class PrometheusMetricsAdapter implements MessageMetricsListener, Managem
   
   private static final String WORKFLOW_MESSAGE_COUNT_METRIC_HELP = "The number of messages processed by this workflow since the last time we checked.";
   
+  private static final String WORKFLOW_MESSAGE_FAIL_COUNT_METRIC = "workflowMessageFailCount";
+  
+  private static final String WORKFLOW_MESSAGE_FAIL_COUNT_METRIC_HELP = "The number of messages processed by this workflow that have failed since the last time we checked.";
+  
+  private static final String WORKFLOW_AVG_TIME_NANOS_METRIC = "workflowAvgNanos";
+  
+  private static final String WORKFLOW_AVG_TIME_NANOS_METRIC_HELP = "The average amount of time in nanoseconds this workflow takes to process a single message.";
+  
+  private static final String WORKFLOW_AVG_TIME_MILLIS_METRIC = "workflowAvgMillis";
+  
+  private static final String WORKFLOW_AVG_TIME_MILLIS_METRIC_HELP = "The average amount of time in millisecods this workflow takes to process a single message.";
+  
   private static final String SERVICE_AVG_TIME_NANOS_METRIC = "serviceAvgNanos";
   
   private static final String SERVICE_AVG_TIME_NANOS_METRIC_HELP = "The average amount of time in nanoseconds this service takes to process a single message.";
@@ -156,8 +168,11 @@ public class PrometheusMetricsAdapter implements MessageMetricsListener, Managem
   @Override
   public void notifyMessageMetrics(List<ActivityMap> statistics) {
     if(statistics.size() == 0) {
-      if(lastActivityMap != null)
+      log.trace("Hello!!!");
+      if(lastActivityMap != null) {
+        lastActivityMap.resetActivity();
         statistics.add(lastActivityMap);
+      }
     }
       
     statistics.forEach(activityMap -> {
@@ -168,7 +183,16 @@ public class PrometheusMetricsAdapter implements MessageMetricsListener, Managem
           ((ChannelActivity) channelActivity).getWorkflows().forEach((workflowId, workflowActivity) -> {
             
             this.buildAndRegisterMetric(WORKFLOW_MESSAGE_COUNT_METRIC, WORKFLOW_MESSAGE_COUNT_METRIC_HELP, 
-                workflowId, null, registry, workflowActivity.getConsumerActivity().getMessageCount());
+                workflowId, null, registry, workflowActivity.getMessageCount());
+            
+            this.buildAndRegisterMetric(WORKFLOW_MESSAGE_FAIL_COUNT_METRIC, WORKFLOW_MESSAGE_FAIL_COUNT_METRIC_HELP, 
+                workflowId, null, registry, workflowActivity.getFailedCount());
+            
+            this.buildAndRegisterMetric(WORKFLOW_AVG_TIME_NANOS_METRIC, WORKFLOW_AVG_TIME_NANOS_METRIC_HELP, 
+                workflowId, null, registry, workflowActivity.getAvgNsTaken());
+            
+            this.buildAndRegisterMetric(WORKFLOW_AVG_TIME_MILLIS_METRIC, WORKFLOW_AVG_TIME_MILLIS_METRIC_HELP, 
+                workflowId, null, registry, workflowActivity.getAvgMsTaken());
             
             this.buildAndRegisterMetric(PRODUCER_AVG_TIME_NANOS_METRIC, PRODUCER_AVG_TIME_NANOS_METRIC_HELP, 
                 workflowId, workflowActivity.getProducerActivity().getUniqueId(), registry, workflowActivity.getProducerActivity().getAvgNsTaken());
@@ -183,8 +207,6 @@ public class PrometheusMetricsAdapter implements MessageMetricsListener, Managem
             });
             
           });
-          // processed, so lets clear it.
-          adapterActivity.resetActivity();
           
           try {
             this.getPushGateway().pushAdd(registry, adapterActivity.getUniqueId());
