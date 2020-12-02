@@ -72,7 +72,8 @@ ext.buildInfo = { ->
     }
 }
 
-sourceCompatibility = 1.8
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 group   = 'com.adaptris'
 version = releaseVersion
 generateLombokConfig.enabled = false
