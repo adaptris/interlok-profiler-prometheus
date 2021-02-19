@@ -63,10 +63,9 @@ public class JmxMessageMetricsCollector implements MessageMetricsCollector {
       if(this.getProfilerEventClient() == null)
         loadProfilerEventClient();
     
-      ActivityMap eventActivityMap = this.getProfilerEventClient().getEventActivityMap();
-      while(eventActivityMap != null) {
+      List<ActivityMap> eventActivityMaps = this.getProfilerEventClient().getEventActivityMaps();
+      for(ActivityMap eventActivityMap : eventActivityMaps) {
         foundStatistics.add(eventActivityMap);
-        eventActivityMap = this.getProfilerEventClient().getEventActivityMap();
       }
       
       this.notifyListeners(foundStatistics);
