@@ -296,7 +296,7 @@ publishing {
 
       pom.withXml {
         asNode().appendNode("name", componentName)
-        asNode().appendNode("description", )
+        asNode().appendNode("description", componentDesc)
         def properties = asNode().appendNode("properties")
         properties.appendNode("target", "3.10.0+")
         properties.appendNode("tags", "metrics,prometheus,profiling")
